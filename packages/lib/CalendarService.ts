@@ -421,6 +421,18 @@ export default abstract class BaseCalendarService implements Calendar {
       attendees.push(...mapAttendees(teamAttendeesWithoutCurrentUser));
     }
 
+    if (event.optionalGuests) {
+      const optionalGuestAttendees = event.optionalGuests
+        .filter((guest) => guest.email !== this.credential.user?.email)
+        .map(({ email, name }) => ({
+          name,
+          email,
+          partstat: "NEEDS-ACTION" as const,
+          role: "OPT-PARTICIPANT" as const,
+        }));
+      attendees.push(...optionalGuestAttendees);
+    }
+
     return attendees;
   }
 

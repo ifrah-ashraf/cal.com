@@ -427,6 +427,17 @@ class LarkCalendarService implements Calendar {
       }
     });
 
+    event.optionalGuests?.forEach((guest) => {
+      if (guest.email !== this.credential.user?.email) {
+        const attendee: LarkEventAttendee = {
+          type: "third_party",
+          is_optional: true,
+          third_party_email: guest.email,
+        };
+        attendeeArray.push(attendee);
+      }
+    });
+
     return attendeeArray;
   };
 }

@@ -539,6 +539,17 @@ class Office365CalendarService implements Calendar {
                 };
               })
           : []),
+        ...(event.optionalGuests
+          ? event.optionalGuests
+              .filter((guest) => guest.email !== this.credential.user?.email)
+              .map((guest) => ({
+                emailAddress: {
+                  address: guest.email,
+                  name: guest.name,
+                },
+                type: "optional" as const,
+              }))
+          : []),
       ],
       location: event.location ? { displayName: getLocation(event) } : undefined,
     };

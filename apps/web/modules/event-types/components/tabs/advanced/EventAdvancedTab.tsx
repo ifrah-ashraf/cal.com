@@ -1533,6 +1533,58 @@ export const EventAdvancedTab = ({
           )}
         />
       )}
+      {team && (
+        <Controller
+          name="metadata.optionalGuestUserIds"
+          render={({ field: { value, onChange } }) => {
+            const optionalGuestUserIds = value ?? [];
+            const isEnabled = optionalGuestUserIds.length > 0;
+            const teamMemberOptions = (team.members ?? [])
+              .filter((member) => member.accepted !== false)
+              .map((member) => ({
+                value: member.user.id,
+                label: member.user.name || member.user.email,
+              }));
+            const selectedOptions = teamMemberOptions.filter((option) =>
+              optionalGuestUserIds.includes(option.value)
+            );
+            return (
+              <SettingsToggle
+                labelClassName="text-sm"
+                toggleSwitchAtTheEnd={true}
+                switchContainerClassName={classNames(
+                  "border-subtle rounded-lg border py-6 px-4 sm:px-6",
+                  isEnabled && "rounded-b-none"
+                )}
+                childrenClassName="lg:ml-0"
+                title={t("add_optional_guests_title")}
+                description={t("add_optional_guests_description")}
+                checked={isEnabled}
+                data-testid="add-optional-guests-toggle"
+                onCheckedChange={(checked) => {
+                  if (!checked) {
+                    onChange([]);
+                  }
+                }}>
+                <div className="border-subtle rounded-b-lg border border-t-0 p-6">
+                  <Select
+                    isMulti
+                    options={teamMemberOptions}
+                    value={selectedOptions}
+                    onChange={(selected) => {
+                      onChange(
+                        (selected as { value: number; label: string }[]).map((option) => option.value)
+                      );
+                    }}
+                    placeholder={t("select_optional_guests")}
+                    data-testid="optional-guests-select"
+                  />
+                </div>
+              </SettingsToggle>
+            );
+          }}
+        />
+      )}
       {allowDisablingAttendeeConfirmationEmails(workflows) && (
         <Controller
           name="metadata.disableStandardEmails.confirmation.attendee"

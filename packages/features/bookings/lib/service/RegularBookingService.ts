@@ -86,6 +86,7 @@ import { getTranslation } from "@calcom/i18n/server";
 import { getTimeFormatStringFromUserTimeFormat } from "@calcom/lib/timeFormat";
 import { distributedTracing } from "@calcom/lib/tracing/factory";
 import type { PrismaClient } from "@calcom/prisma";
+import prisma from "@calcom/prisma";
 import type { AssignmentReasonEnum, DestinationCalendar, Prisma, User } from "@calcom/prisma/client";
 import {
   BookingStatus,
@@ -291,6 +292,7 @@ export const buildEventForTeamEventType = async ({
   organizerUser,
   schedulingType,
   team,
+  optionalGuestUserIds,
 }: {
   existingEvent: Partial<CalendarEvent>;
   users: (Pick<User, "id" | "name" | "timeZone" | "locale" | "email"> & {
@@ -303,6 +305,7 @@ export const buildEventForTeamEventType = async ({
     id: number;
     name: string;
   } | null;
+  optionalGuestUserIds?: number[];
 }) => {
   // not null assertion.
   if (!schedulingType) {
@@ -369,6 +372,28 @@ export const buildEventForTeamEventType = async ({
       statusCode: 400,
       message: "Failed to build team event due to missing required fields",
     });
+  }
+
+  if (optionalGuestUserIds && optionalGuestUserIds.length > 0) {
+    const optionalGuestUsers = await prisma.user.findMany({
+      where: { id: { in: optionalGuestUserIds } },
+      select: { id: true, name: true, email: true, timeZone: true, locale: true },
+    });
+
+    const optionalGuests = await Promise.all(
+      optionalGuestUsers.map(async (user) => ({
+        id: user.id,
+        email: user.email,
+        name: user.name ?? "",
+        timeZone: user.timeZone,
+        language: {
+          translate: await getTranslation(user.locale ?? "en", "common"),
+          locale: user.locale ?? "en",
+        },
+      }))
+    );
+
+    teamEvt.optionalGuests = optionalGuests;
   }
 
   return teamEvt;
@@ -1628,6 +1653,7 @@ async function handler(
       users,
       team: eventType.team,
       organizerUser,
+      optionalGuestUserIds: eventType.metadata?.optionalGuestUserIds ?? undefined,
     });
 
     if (!teamEvt) {
